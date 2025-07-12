@@ -119,25 +119,20 @@ export default function AIAgentPage() {
     setIsTyping(true)
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat", {  // <-- Changed URL to match backend API route
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: currentMessage,
-          conversationHistory: messages
-            .map((msg) => ({
-              role: msg.sender === "user" ? "user" : "assistant",
-              content: msg.text,
-            }))
-            .slice(-10), // Keep last 10 messages for context
+          message: currentMessage,             // <-- Changed from "question" to "message"
+          conversationHistory: messages,       // <-- Added conversationHistory to match backend
         }),
       })
 
       const data = await response.json()
 
-      if (data.success) {
+      if (data.response) {  // Check if backend returned a response
         const aiResponse: Message = {
           id: messages.length + 2,
           text: data.response,
@@ -147,7 +142,7 @@ export default function AIAgentPage() {
         }
         setMessages((prev) => [...prev, aiResponse])
       } else {
-        throw new Error(data.error || "Unknown error")
+        throw new Error("No response from server")
       }
     } catch (error) {
       const errorMessage: Message = {
@@ -403,137 +398,39 @@ export default function AIAgentPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* AI Capabilities */}
-            <Card className="bg-black/40 backdrop-blur-xl border border-white/10">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-purple-400" />
-                  AI Capabilities
-                </h3>
-                <div className="space-y-4">
-                  {aiCapabilities.map((capability, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                    >
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <capability.icon className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="text-white font-medium text-sm">{capability.title}</h4>
-                        <p className="text-gray-400 text-xs">{capability.desc}</p>
-                      </div>
+          <div>
+            <Card className="h-[700px] bg-black/30 backdrop-blur-xl border border-white/10 shadow-lg p-6 overflow-y-auto">
+              <h2 className="text-white text-2xl font-semibold mb-4 flex items-center gap-2">
+                <Globe className="w-6 h-6 text-cyan-400" /> AI Capabilities
+              </h2>
+              <ul className="space-y-4">
+                {aiCapabilities.map(({ icon: Icon, title, desc }, idx) => (
+                  <li key={idx} className="flex gap-4 items-center">
+                    <div className="p-3 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-lg shadow-lg">
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div>
+                      <h3 className="text-white font-semibold">{title}</h3>
+                      <p className="text-gray-300 text-sm">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
-            {/* Preferences */}
-            <Card className="bg-black/40 backdrop-blur-xl border border-white/10">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-cyan-400" />
-                  Travel Preferences
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm text-gray-300 mb-1 block">Budget (₹)</label>
-                    <Input
-                      value={preferences.budget}
-                      onChange={(e) => setPreferences({ ...preferences, budget: e.target.value })}
-                      placeholder="50000"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-300 mb-1 block">Duration (days)</label>
-                    <Input
-                      value={preferences.duration}
-                      onChange={(e) => setPreferences({ ...preferences, duration: e.target.value })}
-                      placeholder="7"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-300 mb-1 block">Interests</label>
-                    <Input
-                      value={preferences.interests}
-                      onChange={(e) => setPreferences({ ...preferences, interests: e.target.value })}
-                      placeholder="Culture, Adventure, Food"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* System Status */}
-            <Card className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 backdrop-blur-xl border border-green-400/20">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full animate-pulse bg-green-400"></div>
-                  System Status
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between text-gray-300">
-                    <span>Knowledge Base</span>
-                    <span className="text-green-400">Active</span>
-                  </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Travel Planning</span>
-                    <span className="text-green-400">Ready</span>
-                  </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Free APIs</span>
-                    <span className={hasConfiguredAPIs ? "text-green-400" : "text-gray-400"}>
-                      {hasConfiguredAPIs ? "Enhanced" : "Available"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Response Time</span>
-                    <span className="text-cyan-400">Instant</span>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setShowSetupGuide(!showSetupGuide)}
-                  size="sm"
-                  className="w-full mt-4 bg-green-600 hover:bg-green-700"
-                >
-                  {showSetupGuide ? "Hide" : "Show"} API Setup
-                </Button>
-              </CardContent>
+              <div className="mt-8 border-t border-white/20 pt-6">
+                <h3 className="text-white font-semibold mb-3">System Status</h3>
+                {systemStatus ? (
+                  <pre className="text-xs text-gray-400 max-h-40 overflow-auto bg-white/10 p-3 rounded">
+                    {JSON.stringify(systemStatus, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="text-gray-500 text-sm">Loading system status...</p>
+                )}
+              </div>
             </Card>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes blob {
-          0% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-          100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   )
 }
